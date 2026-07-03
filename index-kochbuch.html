@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tiltheman's Kitchen | AIthletics Nutrition Coach</title>
+  <meta name="description" content="Rezepte, die auf deine Makros passen. Das freie Nutrition-Tool von AIthletics.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>❦</text></svg>">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            paper: '#FAF9F5', ink: '#1A1A1A', sage: '#788C5D',
+            burgundy: '#6B1C2A', burgundydark: '#571622',
+            muted: '#706C64', hairline: 'rgba(26,26,26,0.16)'
+          },
+          fontFamily: {
+            serif: ['Fraunces', 'Georgia', 'serif'],
+            sans: ['"DM Sans"', 'sans-serif'],
+            mono: ['"DM Mono"', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { margin: 0; }
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .dots { flex: 1 1 auto; border-bottom: 1px dotted rgba(26,26,26,.35); transform: translateY(-4px); min-width: 24px; }
+    input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number] { -moz-appearance: textfield; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <script type="text/babel">
+    const { useState, useMemo } = React;
+
+    // ============================================
+    // LEBENSMITTEL-DATENBANK
+    // ============================================
+    const foodDatabase = {
+      // Supplements & Protein
+      1: { name: "AAKG (ESN)", kcal: 360, protein: 0, carbs: 0, fats: 0, tags: ["workout", "amino-acids"], category: "supplement", allergens: [] },
+      2: { name: "Egg White Albumin (Prozis)", kcal: 332, protein: 80, carbs: 0, fats: 0, tags: ["high-protein", "egg"], category: "supplement", allergens: ["ei"] },
+      3: { name: "Designer Vegan Protein (ESN)", kcal: 361, protein: 50, carbs: 25, fats: 8, tags: ["vegan", "high-protein"], category: "supplement", allergens: ["soja"] },
+      4: { name: "Evo Whey Vanille-Eis", kcal: 379, protein: 75, carbs: 5, fats: 5, tags: ["whey", "high-protein"], category: "supplement", allergens: ["milch"] },
+      5: { name: "Isoclear Whey Isolate (Pink Grapefruit)", kcal: 346, protein: 85, carbs: 0, fats: 0.5, tags: ["whey-isolate"], category: "supplement", allergens: ["milch"] },
+      6: { name: "Evo Vegan Protein (Hazelnut-Nougat)", kcal: 414, protein: 60, carbs: 15, fats: 15, tags: ["vegan", "plant-based"], category: "supplement", allergens: ["nüsse", "soja"] },
+      7: { name: "Vegan Protein (Salted Caramel, Evo)", kcal: 391, protein: 60, carbs: 18, fats: 8, tags: ["vegan", "plant-based"], category: "supplement", allergens: ["soja"] },
+      
+      // Früchte
+      10: { name: "Ananas (frisch)", kcal: 57, protein: 0.5, carbs: 13, fats: 0.1, tags: ["tropical", "vitamin-c", "vegan"], category: "fruit", allergens: [] },
+      11: { name: "Apfel (frisch)", kcal: 54, protein: 0.3, carbs: 14, fats: 0.1, tags: ["fiber", "antioxidants", "vegan"], category: "fruit", allergens: [] },
+      12: { name: "Avocado (Hass)", kcal: 233, protein: 2, carbs: 14, fats: 21, tags: ["healthy-fats", "keto-friendly", "vegan"], category: "fruit", allergens: [] },
+      13: { name: "Banane (frisch)", kcal: 93, protein: 1.2, carbs: 21, fats: 0.3, tags: ["potassium", "quick-energy", "vegan"], category: "fruit", allergens: [] },
+      14: { name: "Erdbeeren (frisch)", kcal: 33, protein: 0.8, carbs: 7.7, fats: 0.4, tags: ["low-calorie", "vitamin-c", "vegan"], category: "fruit", allergens: [] },
+      15: { name: "Heidelbeeren (frisch)", kcal: 46, protein: 0.6, carbs: 11, fats: 0.6, tags: ["antioxidants", "superfood", "vegan"], category: "fruit", allergens: [] },
+      16: { name: "Himbeeren (frisch)", kcal: 43, protein: 1.3, carbs: 10, fats: 0.3, tags: ["fiber", "antioxidants", "vegan"], category: "fruit", allergens: [] },
+      17: { name: "Mango (frisch)", kcal: 62, protein: 0.8, carbs: 15, fats: 0.4, tags: ["tropical", "vitamin-a", "vegan"], category: "fruit", allergens: [] },
+      18: { name: "Kiwi (frisch)", kcal: 62, protein: 1.2, carbs: 15, fats: 0.5, tags: ["vitamin-c", "fiber", "vegan"], category: "fruit", allergens: [] },
+      19: { name: "Granatapfel (frisch)", kcal: 80, protein: 1.7, carbs: 19, fats: 1.2, tags: ["antioxidants", "superfood", "vegan"], category: "fruit", allergens: [] },
+      
+      // Gemüse
+      20: { name: "Bio-Brokkoli", kcal: 29, protein: 2.8, carbs: 6, fats: 0.3, tags: ["cruciferous", "vitamin-k", "vegan"], category: "vegetable", allergens: [] },
+      21: { name: "Blattspinat", kcal: 22, protein: 2.9, carbs: 1.1, fats: 0.4, tags: ["leafy-green", "iron", "vegan"], category: "vegetable", allergens: [] },
+      22: { name: "Blumenkohl (gekocht)", kcal: 25, protein: 2, carbs: 5, fats: 0.1, tags: ["cruciferous", "low-calorie", "vegan"], category: "vegetable", allergens: [] },
+      23: { name: "Champignons (frisch)", kcal: 20, protein: 3.1, carbs: 3, fats: 0.3, tags: ["mushroom", "umami", "vegan"], category: "vegetable", allergens: [] },
+      24: { name: "Karotte/Möhre (frisch)", kcal: 39, protein: 0.9, carbs: 9.4, fats: 0.2, tags: ["beta-carotene", "vegan"], category: "vegetable", allergens: [] },
+      25: { name: "Paprika (rot, frisch)", kcal: 38, protein: 1.2, carbs: 9, fats: 0.3, tags: ["vitamin-c", "antioxidants", "vegan"], category: "vegetable", allergens: [] },
+      26: { name: "Tomaten (frisch)", kcal: 19, protein: 0.9, carbs: 3.9, fats: 0.2, tags: ["lycopene", "versatile", "vegan"], category: "vegetable", allergens: [] },
+      27: { name: "Zucchini (grün, frisch)", kcal: 19, protein: 1.2, carbs: 3.1, fats: 0.3, tags: ["summer-squash", "low-calorie", "vegan"], category: "vegetable", allergens: [] },
+      28: { name: "Süßkartoffel (frisch)", kcal: 86, protein: 1.6, carbs: 20, fats: 0.1, tags: ["beta-carotene", "complex-carbs", "vegan"], category: "vegetable", allergens: [] },
+      
+      // Fleisch & Fisch
+      30: { name: "Hühnerfilet (Clever)", kcal: 101, protein: 22, carbs: 0, fats: 2, tags: ["poultry", "lean", "high-protein"], category: "meat", allergens: [] },
+      31: { name: "Bio Weiderind (Schnitzel)", kcal: 123, protein: 22, carbs: 0, fats: 3, tags: ["beef", "grass-fed", "high-protein"], category: "meat", allergens: [] },
+      32: { name: "Putenschnitzel (bio, Aldi)", kcal: 105, protein: 22, carbs: 0, fats: 2, tags: ["turkey", "lean", "high-protein"], category: "meat", allergens: [] },
+      33: { name: "Black Tiger Garnelen (roh)", kcal: 66, protein: 14, carbs: 0, fats: 1, tags: ["shrimp", "lean", "seafood"], category: "seafood", allergens: ["krustentiere"] },
+      34: { name: "Kabeljau Filets", kcal: 78, protein: 17, carbs: 0, fats: 0.7, tags: ["white-fish", "lean", "omega-3"], category: "seafood", allergens: ["fisch"] },
+      35: { name: "Thunfisch (Filets Naturale)", kcal: 109, protein: 25, carbs: 0, fats: 1, tags: ["tuna", "high-protein", "canned"], category: "seafood", allergens: ["fisch"] },
+      
+      // Getreide & Kohlenhydrate
+      40: { name: "Basmati Reis (trocken)", kcal: 354, protein: 7.5, carbs: 78, fats: 1, tags: ["rice", "complex-carbs", "vegan"], category: "grain", allergens: [] },
+      41: { name: "Haferflocken (Bio, glutenfrei)", kcal: 372, protein: 13, carbs: 59, fats: 7, tags: ["oats", "fiber", "vegan"], category: "grain", allergens: ["gluten"] },
+      42: { name: "Bio Reiswaffeln (ungesalzen)", kcal: 401, protein: 8, carbs: 85, fats: 2, tags: ["crispy", "gluten-free", "vegan"], category: "grain", allergens: [] },
+      43: { name: "Kartoffeln (roh)", kcal: 71, protein: 2, carbs: 15, fats: 0.1, tags: ["potato", "versatile", "vegan"], category: "grain", allergens: [] },
+      44: { name: "Penne Rigate (trocken)", kcal: 341, protein: 11, carbs: 70, fats: 1.5, tags: ["pasta", "italian", "vegan"], category: "grain", allergens: ["gluten", "weizen"] },
+      
+      // Nüsse & Samen
+      50: { name: "Mandeln (ganz)", kcal: 619, protein: 22, carbs: 4, fats: 58, tags: ["healthy-fats", "vitamin-e", "vegan"], category: "nuts", allergens: ["nüsse"] },
+      51: { name: "Cashewkerne (natur)", kcal: 606, protein: 18, carbs: 30, fats: 46, tags: ["creamy", "magnesium", "vegan"], category: "nuts", allergens: ["nüsse"] },
+      52: { name: "Erdnüsse (ungesalzen)", kcal: 607, protein: 26, carbs: 16, fats: 49, tags: ["high-protein", "affordable", "vegan"], category: "nuts", allergens: ["erdnüsse"] },
+      53: { name: "Bio Pistazienmus", kcal: 658, protein: 20, carbs: 20, fats: 60, tags: ["pistachio", "nut-butter", "vegan"], category: "nuts", allergens: ["nüsse"] },
+      54: { name: "Erdnussmus (dm Bio)", kcal: 630, protein: 30, carbs: 7, fats: 55, tags: ["peanut-butter", "vegan"], category: "nuts", allergens: ["erdnüsse"] },
+      
+      // Milchprodukte & Alternativen
+      60: { name: "LAC Speisequark (Magerstufe)", kcal: 68, protein: 12, carbs: 4, fats: 0.3, tags: ["quark", "low-fat"], category: "dairy", allergens: ["milch"] },
+      61: { name: "Skyr (Minus L)", kcal: 62, protein: 11, carbs: 4, fats: 0.2, tags: ["icelandic", "high-protein"], category: "dairy", allergens: ["milch"] },
+      62: { name: "Mandelmilch (geröstet, ungesüßt)", kcal: 14, protein: 0.5, carbs: 0.3, fats: 1.1, tags: ["almond", "vegan"], category: "dairy-alternative", allergens: ["nüsse"] },
+      63: { name: "Ei (vom Huhn)", kcal: 156, protein: 13, carbs: 1.5, fats: 11, tags: ["whole-egg", "complete-protein"], category: "dairy", allergens: ["ei"] },
+      64: { name: "Eiklar", kcal: 52, protein: 11, carbs: 0.7, fats: 0.2, tags: ["egg-white", "pure-protein"], category: "dairy", allergens: ["ei"] },
+      
+      // Hülsenfrüchte
+      70: { name: "Bio-Linsen (genussfertig)", kcal: 153, protein: 9, carbs: 20, fats: 1, tags: ["lentils", "fiber", "vegan"], category: "legumes", allergens: [] },
+      71: { name: "Bio Junge Erbsen", kcal: 81, protein: 5.4, carbs: 14, fats: 0.4, tags: ["peas", "sweet", "vegan"], category: "legumes", allergens: [] },
+      72: { name: "Kidney Bohnen (Bonduelle)", kcal: 115, protein: 8.7, carbs: 17, fats: 0.6, tags: ["kidney-beans", "fiber", "vegan"], category: "legumes", allergens: [] },
+      73: { name: "Bio-Hummus (natur)", kcal: 191, protein: 8, carbs: 14, fats: 13, tags: ["chickpeas", "vegan"], category: "legumes", allergens: ["sesam"] },
+      
+      // Öle & Fette
+      80: { name: "Extra Natives Olivenöl", kcal: 823, protein: 0, carbs: 0, fats: 91, tags: ["olive-oil", "mediterranean", "vegan"], category: "oil", allergens: [] },
+      
+      // Zusätzliche Lebensmittel
+      81: { name: "Reisbrei (gekocht)", kcal: 78, protein: 1.5, carbs: 17, fats: 0.2, tags: ["rice", "easy-digest", "vegan"], category: "grain", allergens: [] },
+      82: { name: "99% Schokolade", kcal: 590, protein: 13, carbs: 8, fats: 55, tags: ["dark-chocolate", "antioxidants", "vegan"], category: "snack", allergens: ["soja"] },
+      83: { name: "Craft Crank Pump Pro", kcal: 15, protein: 0, carbs: 3, fats: 0, tags: ["pre-workout", "pump", "nitric-oxide"], category: "supplement", allergens: [] }
+    };
+
+    // ============================================
+    // REZEPT-DATENBANK
+    // ============================================
+    const recipeDatabase = [
+      // FRÜHSTÜCK
+      {
+        id: 1,
+        name: "Vegan Berry Protein Smoothie",
+        ingredients: [
+          { foodId: 15, amount: 125, name: "Heidelbeeren (frisch)" },
+          { foodId: 16, amount: 25, name: "Himbeeren (frisch)" },
+          { foodId: 41, amount: 50, name: "Haferflocken (Bio)" },
+          { foodId: 7, amount: 30, name: "Vegan Protein (Salted Caramel)" },
+          { foodId: 62, amount: 250, name: "Mandelmilch" }
+        ],
+        instructions: [
+          "Alle Zutaten in einen Hochleistungsmixer geben",
+          "30-45 Sekunden auf höchster Stufe mixen",
+          "Bei Bedarf mit Eiswürfeln kalt servieren"
+        ],
+        category: "breakfast",
+        tags: ["vegan", "quick", "high-protein", "smoothie"],
+        prepTime: 5,
+        difficulty: "easy",
+        isVegan: true
+      },
+      {
+        id: 2,
+        name: "Tropical Vegan Power Bowl",
+        ingredients: [
+          { foodId: 13, amount: 100, name: "Banane (frisch)" },
+          { foodId: 17, amount: 80, name: "Mango (frisch)" },
+          { foodId: 41, amount: 60, name: "Haferflocken (Bio)" },
+          { foodId: 3, amount: 25, name: "Designer Vegan Protein" },
+          { foodId: 51, amount: 20, name: "Cashewkerne" },
+          { foodId: 62, amount: 150, name: "Mandelmilch" }
+        ],
+        instructions: [
+          "Haferflocken mit Mandelmilch über Nacht einweichen (oder 2 Min. mikrowellen)",
+          "Vegan Protein unterrühren",
+          "Mit Banane, Mango und Cashews toppen"
+        ],
+        category: "breakfast",
+        tags: ["vegan", "meal-prep", "tropical"],
+        prepTime: 10,
+        difficulty: "easy",
+        isVegan: true
+      },
+      {
+        id: 3,
+        name: "Classic Protein Oats",
+        ingredients: [
+          { foodId: 41, amount: 80, name: "Haferflocken (Bio)" },
+          { foodId: 4, amount: 30, name: "Evo Whey Vanille-Eis" },
+          { foodId: 13, amount: 100, name: "Banane (frisch)" },
+          { foodId: 54, amount: 15, name: "Erdnussmus" },
+          { foodId: 61, amount: 100, name: "Skyr" }
+        ],
+        instructions: [
+          "Haferflocken mit 200ml Wasser aufkochen (3 Min.)",
+          "Whey Protein unterrühren",
+          "Mit Banane, Erdnussmus und Skyr toppen"
+        ],
+        category: "breakfast",
+        tags: ["high-protein", "classic", "filling"],
+        prepTime: 8,
+        difficulty: "easy",
+        isVegan: false
+      },
+      {
+        id: 4,
+        name: "Eiweiß-Omelette Deluxe",
+        ingredients: [
+          { foodId: 64, amount: 200, name: "Eiklar" },
+          { foodId: 63, amount: 50, name: "Ei (vom Huhn)" },
+          { foodId: 23, amount: 100, name: "Champignons" },
+          { foodId: 21, amount: 80, name: "Blattspinat" }
+        ],
+        instructions: [
+          "Champignons in Scheiben schneiden und anbraten",
+          "Spinat hinzufügen und zusammenfallen lassen",
+          "Eiklar und Ei verquirlen, über das Gemüse gießen",
+          "Bei mittlerer Hitze stocken lassen, falten und servieren"
+        ],
+        category: "breakfast",
+        tags: ["high-protein", "low-carb", "keto-friendly"],
+        prepTime: 12,
+        difficulty: "medium",
+        isVegan: false
+      },
+      {
+        id: 5,
+        name: "Quark-Beeren Bowl",
+        ingredients: [
+          { foodId: 60, amount: 250, name: "LAC Speisequark" },
+          { foodId: 15, amount: 125, name: "Heidelbeeren" },
+          { foodId: 14, amount: 35, name: "Erdbeeren" },
+          { foodId: 41, amount: 30, name: "Haferflocken" },
+          { foodId: 50, amount: 15, name: "Mandeln" }
+        ],
+        instructions: [
+          "Quark in eine Schüssel geben",
+          "Mit frischen Beeren toppen",
+          "Haferflocken und gehackte Mandeln darüber streuen"
+        ],
+        category: "breakfast",
+        tags: ["high-protein", "fresh", "quick"],
+        prepTime: 5,
+        difficulty: "easy",
+        isVegan: false
+      },
+      
+      // MITTAGESSEN/ABENDESSEN
+      {
+        id: 6,
+        name: "Vegan Buddha Bowl",
+        ingredients: [
+          { foodId: 40, amount: 60, name: "Basmati Reis" },
+          { foodId: 20, amount: 150, name: "Bio-Brokkoli" },
+          { foodId: 70, amount: 120, name: "Bio-Linsen" },
+          { foodId: 12, amount: 50, name: "Avocado" },
+          { foodId: 73, amount: 40, name: "Bio-Hummus" },
+          { foodId: 80, amount: 10, name: "Olivenöl" }
+        ],
+        instructions: [
+          "Reis nach Packungsanweisung kochen",
+          "Brokkoli dämpfen oder blanchieren (5 Min.)",
+          "Linsen erwärmen",
+          "Alles in einer Bowl anrichten",
+          "Mit Avocado und Hummus toppen, Olivenöl darüber träufeln"
+        ],
+        category: "lunch",
+        tags: ["vegan", "balanced", "meal-prep"],
+        prepTime: 25,
+        difficulty: "easy",
+        isVegan: true
+      },
+      {
+        id: 7,
+        name: "Mediterranean Veggie Pasta",
+        ingredients: [
+          { foodId: 44, amount: 80, name: "Penne Rigate" },
+          { foodId: 26, amount: 150, name: "Tomaten" },
+          { foodId: 27, amount: 150, name: "Zucchini" },
+          { foodId: 80, amount: 15, name: "Olivenöl" },
+          { foodId: 70, amount: 100, name: "Bio-Linsen" }
+        ],
+        instructions: [
+          "Pasta al dente kochen",
+          "Tomaten und Zucchini in Würfel schneiden",
+          "Olivenöl erhitzen, Gemüse anbraten",
+          "Linsen hinzufügen und erwärmen",
+          "Mit Pasta vermischen, mit Kräutern würzen"
+        ],
+        category: "dinner",
+        tags: ["vegan", "italian", "comfort-food"],
+        prepTime: 20,
+        difficulty: "easy",
+        isVegan: true
+      },
+      {
+        id: 8,
+        name: "Chicken Teriyaki Bowl",
+        ingredients: [
+          { foodId: 30, amount: 150, name: "Hühnerfilet" },
+          { foodId: 40, amount: 70, name: "Basmati Reis" },
+          { foodId: 20, amount: 150, name: "Bio-Brokkoli" },
+          { foodId: 80, amount: 10, name: "Olivenöl" }
+        ],
+        instructions: [
+          "Reis kochen",
+          "Hühnerfilet in Streifen schneiden und anbraten",
+          "Brokkoli dämpfen oder kurz anbraten",
+          "Alles in einer Bowl anrichten",
+          "Mit Teriyaki-Sauce (separat) servieren"
+        ],
+        category: "lunch",
+        tags: ["high-protein", "asian", "lean"],
+        prepTime: 25,
+        difficulty: "medium",
+        isVegan: false
+      },
+      {
+        id: 9,
+        name: "Lacto-Free Beef Stir Fry",
+        ingredients: [
+          { foodId: 31, amount: 150, name: "Bio Weiderind" },
+          { foodId: 25, amount: 150, name: "Paprika (rot)" },
+          { foodId: 23, amount: 120, name: "Champignons" },
+          { foodId: 40, amount: 60, name: "Basmati Reis" },
+          { foodId: 80, amount: 10, name: "Olivenöl" }
+        ],
+        instructions: [
+          "Reis nach Anleitung kochen",
+          "Rindfleisch in dünne Streifen schneiden",
+          "Öl in Wok erhitzen, Fleisch scharf anbraten",
+          "Paprika und Champignons hinzufügen und durchschwenken",
+          "Mit Reis servieren"
+        ],
+        category: "dinner",
+        tags: ["high-protein", "asian", "grass-fed"],
+        prepTime: 20,
+        difficulty: "medium",
+        isVegan: false
+      },
+      {
+        id: 10,
+        name: "Garlic Shrimp & Sweet Potato",
+        ingredients: [
+          { foodId: 33, amount: 150, name: "Black Tiger Garnelen" },
+          { foodId: 28, amount: 200, name: "Süßkartoffel" },
+          { foodId: 21, amount: 120, name: "Blattspinat" },
+          { foodId: 80, amount: 15, name: "Olivenöl" }
+        ],
+        instructions: [
+          "Süßkartoffel würfeln und im Ofen backen (200°C, 25 Min.)",
+          "Garnelen mit Knoblauch in Olivenöl anbraten",
+          "Spinat hinzufügen und zusammenfallen lassen",
+          "Mit gebackener Süßkartoffel servieren"
+        ],
+        category: "dinner",
+        tags: ["seafood", "lean", "mediterranean"],
+        prepTime: 35,
+        difficulty: "medium",
+        isVegan: false
+      },
+      
+      // SNACKS
+      {
+        id: 11,
+        name: "Vegan Energy Balls",
+        ingredients: [
+          { foodId: 41, amount: 50, name: "Haferflocken" },
+          { foodId: 54, amount: 30, name: "Erdnussmus" },
+          { foodId: 13, amount: 60, name: "Banane" },
+          { foodId: 3, amount: 20, name: "Designer Vegan Protein" },
+          { foodId: 51, amount: 20, name: "Cashewkerne" }
+        ],
+        instructions: [
+          "Alle Zutaten in einer Schüssel vermengen",
+          "Banane zerdrücken und gut untermischen",
+          "Kleine Kugeln formen (ca. 8 Stück)",
+          "30 Min. im Kühlschrank fest werden lassen"
+        ],
+        category: "snack",
+        tags: ["vegan", "no-bake", "meal-prep", "portable"],
+        prepTime: 15,
+        difficulty: "easy",
+        isVegan: true
+      },
+      {
+        id: 12,
+        name: "Protein Quark Dip",
+        ingredients: [
+          { foodId: 60, amount: 200, name: "LAC Speisequark" },
+          { foodId: 24, amount: 100, name: "Karotten" },
+          { foodId: 25, amount: 100, name: "Paprika" },
+          { foodId: 4, amount: 15, name: "Evo Whey Vanille-Eis" }
+        ],
+        instructions: [
+          "Quark mit etwas Salz und Kräutern mischen",
+          "Optional: Whey für extra Protein unterrühren",
+          "Gemüse in Sticks schneiden",
+          "Als Dip servieren"
+        ],
+        category: "snack",
+        tags: ["high-protein", "low-calorie", "fresh"],
+        prepTime: 10,
+        difficulty: "easy",
+        isVegan: false
+      },
+      {
+        id: 13,
+        name: "Greek Yogurt Parfait",
+        ingredients: [
+          { foodId: 61, amount: 150, name: "Skyr" },
+          { foodId: 15, amount: 100, name: "Heidelbeeren" },
+          { foodId: 14, amount: 20, name: "Erdbeeren" },
+          { foodId: 41, amount: 25, name: "Haferflocken" },
+          { foodId: 50, amount: 10, name: "Mandeln" }
+        ],
+        instructions: [
+          "Skyr in ein Glas schichten",
+          "Beeren darüber geben",
+          "Mit Haferflocken und gehackten Mandeln toppen"
+        ],
+        category: "snack",
+        tags: ["high-protein", "quick", "layered"],
+        prepTime: 5,
+        difficulty: "easy",
+        isVegan: false
+      },
+      
+      // POST-WORKOUT
+      {
+        id: 14,
+        name: "Vegan Recovery Shake",
+        ingredients: [
+          { foodId: 6, amount: 40, name: "Evo Vegan Protein (Hazelnut-Nougat)" },
+          { foodId: 13, amount: 120, name: "Banane" },
+          { foodId: 41, amount: 40, name: "Haferflocken" },
+          { foodId: 54, amount: 20, name: "Erdnussmus" },
+          { foodId: 62, amount: 300, name: "Mandelmilch" }
+        ],
+        instructions: [
+          "Alle Zutaten in den Mixer geben",
+          "45-60 Sekunden auf hoher Stufe mixen",
+          "Sofort nach dem Training trinken für optimale Recovery"
+        ],
+        category: "post-workout",
+        tags: ["vegan", "high-protein", "recovery", "quick"],
+        prepTime: 5,
+        difficulty: "easy",
+        isVegan: true
+      },
+      {
+        id: 15,
+        name: "Whey Isolate Power Shake",
+        ingredients: [
+          { foodId: 5, amount: 40, name: "Isoclear Whey Isolate" },
+          { foodId: 13, amount: 100, name: "Banane" },
+          { foodId: 41, amount: 50, name: "Haferflocken" },
+          { foodId: 61, amount: 100, name: "Skyr" },
+          { foodId: 15, amount: 80, name: "Heidelbeeren" }
+        ],
+        instructions: [
+          "Haferflocken, Skyr und Früchte in den Mixer geben",
+          "Whey Isolate hinzufügen",
+          "Mit 200ml Wasser auffüllen und mixen",
+          "Innerhalb von 30 Min. nach dem Training konsumieren"
+        ],
+        category: "post-workout",
+        tags: ["high-protein", "fast-absorbing", "recovery"],
+        prepTime: 5,
+        difficulty: "easy",
+        isVegan: false
+      },
+      
+      // PRE-WORKOUT
+      {
+        id: 16,
+        name: "Tiltheman's Power Pre",
+        ingredients: [
+          { foodId: 81, amount: 100, name: "Reisbrei (gekocht)" },
+          { foodId: 7, amount: 38, name: "Vegan Protein (Salted Caramel)" },
+          { foodId: 82, amount: 15, name: "99% Schokolade" },
+          { foodId: 13, amount: 70, name: "Banane" },
+          { foodId: 83, amount: 30, name: "Craft Crank Pump Pro" }
+        ],
+        instructions: [
+          "Reisbrei zubereiten oder erwärmen",
+          "Vegan Protein unterrühren",
+          "99% Schokolade raspeln und unterheben",
+          "Mit Bananenscheiben toppen",
+          "Pump Pro in 200ml Wasser auflösen und dazu trinken",
+          "30-45 Min. vor dem Training konsumieren"
+        ],
+        category: "pre-workout",
+        tags: ["vegan", "high-protein", "pre-workout", "pump"],
+        prepTime: 10,
+        difficulty: "easy",
+        isVegan: true
+      },
+      {
+        id: 17,
+        name: "Vegan Pre-Workout Boost",
+        ingredients: [
+          { foodId: 13, amount: 100, name: "Banane" },
+          { foodId: 41, amount: 40, name: "Haferflocken" },
+          { foodId: 54, amount: 15, name: "Erdnussmus" },
+          { foodId: 62, amount: 200, name: "Mandelmilch" },
+          { foodId: 1, amount: 5, name: "AAKG (ESN)" }
+        ],
+        instructions: [
+          "Alle Zutaten im Mixer kombinieren",
+          "Glatt pürieren",
+          "30-45 Min. vor dem Training trinken"
+        ],
+        category: "pre-workout",
+        tags: ["vegan", "energy", "pre-workout", "quick"],
+        prepTime: 5,
+        difficulty: "easy",
+        isVegan: true
+      },
+      {
+        id: 18,
+        name: "Classic Pre-Workout Meal",
+        ingredients: [
+          { foodId: 40, amount: 50, name: "Basmati Reis" },
+          { foodId: 30, amount: 100, name: "Hühnerfilet" },
+          { foodId: 13, amount: 80, name: "Banane" }
+        ],
+        instructions: [
+          "Reis kochen",
+          "Hühnerfilet grillen oder braten",
+          "60-90 Min. vor dem Training essen",
+          "Banane als schnelle Energie dazu"
+        ],
+        category: "pre-workout",
+        tags: ["high-protein", "complex-carbs", "pre-workout"],
+        prepTime: 20,
+        difficulty: "easy",
+        isVegan: false
+      },
+      
+      // INTRA-WORKOUT
+      {
+        id: 19,
+        name: "Vegan Intra-Workout Drink",
+        ingredients: [
+          { foodId: 1, amount: 8, name: "AAKG (ESN)" },
+          { foodId: 13, amount: 60, name: "Banane" },
+          { foodId: 62, amount: 300, name: "Mandelmilch" }
+        ],
+        instructions: [
+          "AAKG in Mandelmilch auflösen",
+          "Banane klein schneiden und dazu essen",
+          "Während des Trainings in kleinen Schlucken trinken"
+        ],
+        category: "intra-workout",
+        tags: ["vegan", "amino-acids", "intra-workout", "hydration"],
+        prepTime: 2,
+        difficulty: "easy",
+        isVegan: true
+      },
+      {
+        id: 20,
+        name: "Intra-Workout Amino Shake",
+        ingredients: [
+          { foodId: 1, amount: 10, name: "AAKG (ESN)" },
+          { foodId: 5, amount: 15, name: "Isoclear Whey Isolate" },
+          { foodId: 42, amount: 30, name: "Bio Reiswaffeln" }
+        ],
+        instructions: [
+          "AAKG und Whey Isolate in 400ml Wasser auflösen",
+          "Reiswaffeln nebenbei essen für schnelle Carbs",
+          "Während des Trainings konsumieren"
+        ],
+        category: "intra-workout",
+        tags: ["amino-acids", "fast-absorbing", "intra-workout"],
+        prepTime: 2,
+        difficulty: "easy",
+        isVegan: false
+      }
+    ];
+
+    // Calculate nutrition for each recipe
+    recipeDatabase.forEach(recipe => {
+      let totalNutrition = { kcal: 0, protein: 0, carbs: 0, fats: 0 };
+      recipe.ingredients.forEach(ing => {
+        const food = foodDatabase[ing.foodId];
+        if (food) {
+          const multiplier = ing.amount / 100;
+          totalNutrition.kcal += food.kcal * multiplier;
+          totalNutrition.protein += food.protein * multiplier;
+          totalNutrition.carbs += food.carbs * multiplier;
+          totalNutrition.fats += food.fats * multiplier;
+        }
+      });
+      recipe.totalNutrition = {
+        kcal: Math.round(totalNutrition.kcal),
+        protein: Math.round(totalNutrition.protein * 10) / 10,
+        carbs: Math.round(totalNutrition.carbs * 10) / 10,
+        fats: Math.round(totalNutrition.fats * 10) / 10
+      };
+    });
+
+    // Category configuration
+    const categoryEmojis = {
+      supplement: '💊', fruit: '🍎', vegetable: '🥬', meat: '🥩',
+      seafood: '🦐', grain: '🌾', nuts: '🥜', dairy: '🥛',
+      'dairy-alternative': '🌱', legumes: '🫘', oil: '🫒', snack: '🍫'
+    };
+
+    const categoryNames = {
+      supplement: 'Supplements', fruit: 'Obst', vegetable: 'Gemüse',
+      meat: 'Fleisch', seafood: 'Meeresfrüchte', grain: 'Getreide & Kohlenhydrate',
+      nuts: 'Nüsse & Samen', dairy: 'Milchprodukte', 'dairy-alternative': 'Milchalternativen',
+      legumes: 'Hülsenfrüchte', oil: 'Öle & Fette', snack: 'Snacks'
+    };
+
+    // Allergen list
+    const allergenList = [
+      { id: 'gluten', name: 'Gluten', emoji: '🌾' },
+      { id: 'weizen', name: 'Weizen', emoji: '🍞' },
+      { id: 'milch', name: 'Milch/Laktose', emoji: '🥛' },
+      { id: 'ei', name: 'Ei', emoji: '🥚' },
+      { id: 'nüsse', name: 'Nüsse', emoji: '🥜' },
+      { id: 'erdnüsse', name: 'Erdnüsse', emoji: '🥜' },
+      { id: 'soja', name: 'Soja', emoji: '🫘' },
+      { id: 'fisch', name: 'Fisch', emoji: '🐟' },
+      { id: 'krustentiere', name: 'Krustentiere', emoji: '🦐' },
+      { id: 'sesam', name: 'Sesam', emoji: '⚪' }
+    ];
+
+    // ============================================
+    // MAIN APP COMPONENT
+    // ============================================
+    function NutritionCoachApp() {
+      const [targetMacros, setTargetMacros] = useState({ kcal: 500, protein: 40, carbs: 50, fats: 15 });
+      const [workoutFilters, setWorkoutFilters] = useState({ preWorkout: false, intraWorkout: false, postWorkout: false });
+      const [selectedAllergens, setSelectedAllergens] = useState([]);
+      const [suggestions, setSuggestions] = useState([]);
+      const [selectedRecipes, setSelectedRecipes] = useState([]);
+      const [showDatabase, setShowDatabase] = useState(false);
+      const [activeTab, setActiveTab] = useState('input');
+
+      const calculateMatchScore = (recipe, targets) => {
+        const nutrition = recipe.totalNutrition;
+        const kcalDiff = Math.abs(nutrition.kcal - targets.kcal) / targets.kcal;
+        const proteinDiff = Math.abs(nutrition.protein - targets.protein) / targets.protein;
+        const carbsDiff = Math.abs(nutrition.carbs - targets.carbs) / targets.carbs;
+        const fatsDiff = Math.abs(nutrition.fats - targets.fats) / targets.fats;
+        return (kcalDiff * 0.3) + (proteinDiff * 0.4) + (carbsDiff * 0.15) + (fatsDiff * 0.15);
+      };
+
+      const calculatePortionAdjustment = (recipe, targetKcal) => {
+        return targetKcal / recipe.totalNutrition.kcal;
+      };
+
+      const recipeContainsAllergen = (recipe) => {
+        if (selectedAllergens.length === 0) return false;
+        for (const ing of recipe.ingredients) {
+          const food = foodDatabase[ing.foodId];
+          if (food && food.allergens) {
+            for (const allergen of food.allergens) {
+              if (selectedAllergens.includes(allergen)) return true;
+            }
+          }
+        }
+        return false;
+      };
+
+      const toggleAllergen = (allergenId) => {
+        setSelectedAllergens(prev => 
+          prev.includes(allergenId) ? prev.filter(a => a !== allergenId) : [...prev, allergenId]
+        );
+      };
+
+      const findMatchingRecipes = () => {
+        const anyWorkoutFilter = workoutFilters.preWorkout || workoutFilters.intraWorkout || workoutFilters.postWorkout;
+        
+        if (anyWorkoutFilter) {
+          let workoutRecipes = [];
+          if (workoutFilters.preWorkout) {
+            workoutRecipes.push(...recipeDatabase.filter(r => r.category === 'pre-workout' && !recipeContainsAllergen(r))
+              .map(r => ({ ...r, score: calculateMatchScore(r, targetMacros), portionMultiplier: calculatePortionAdjustment(r, targetMacros.kcal) })));
+          }
+          if (workoutFilters.intraWorkout) {
+            workoutRecipes.push(...recipeDatabase.filter(r => r.category === 'intra-workout' && !recipeContainsAllergen(r))
+              .map(r => ({ ...r, score: calculateMatchScore(r, targetMacros), portionMultiplier: calculatePortionAdjustment(r, targetMacros.kcal) })));
+          }
+          if (workoutFilters.postWorkout) {
+            workoutRecipes.push(...recipeDatabase.filter(r => r.category === 'post-workout' && !recipeContainsAllergen(r))
+              .map(r => ({ ...r, score: calculateMatchScore(r, targetMacros), portionMultiplier: calculatePortionAdjustment(r, targetMacros.kcal) })));
+          }
+          setSuggestions(workoutRecipes);
+          setActiveTab('suggestions');
+          return;
+        }
+
+        const scoredRecipes = recipeDatabase
+          .filter(r => !['pre-workout', 'intra-workout', 'post-workout'].includes(r.category) && !recipeContainsAllergen(r))
+          .map(r => ({ ...r, score: calculateMatchScore(r, targetMacros), portionMultiplier: calculatePortionAdjustment(r, targetMacros.kcal) }));
+        
+        scoredRecipes.sort((a, b) => a.score - b.score);
+        const veganRecipes = scoredRecipes.filter(r => r.isVegan);
+        const result = scoredRecipes.slice(0, 2);
+        
+        if (!result.some(r => r.isVegan) && veganRecipes.length > 0 && !result.find(r => r.id === veganRecipes[0].id)) {
+          result[1] = veganRecipes[0];
+        }
+        
+        while (result.length < 3) {
+          const remaining = scoredRecipes.filter(r => !result.find(res => res.id === r.id));
+          if (remaining.length > 0) {
+            const needVegan = !result.some(r => r.isVegan);
+            result.push(needVegan ? (remaining.find(r => r.isVegan) || remaining[0]) : remaining[0]);
+          } else break;
+        }
+        
+        setSuggestions(result.slice(0, 3));
+        setActiveTab('suggestions');
+      };
+
+      const addToSelection = (recipe) => {
+        if (!selectedRecipes.find(r => r.id === recipe.id)) {
+          setSelectedRecipes([...selectedRecipes, recipe]);
+        }
+      };
+
+      const removeFromSelection = (recipeId) => {
+        setSelectedRecipes(selectedRecipes.filter(r => r.id !== recipeId));
+      };
+
+      const generateShoppingList = useMemo(() => {
+        const itemsMap = new Map();
+        selectedRecipes.forEach(recipe => {
+          recipe.ingredients.forEach(ing => {
+            const food = foodDatabase[ing.foodId];
+            if (food) {
+              const adjustedAmount = Math.round(ing.amount * recipe.portionMultiplier);
+              if (itemsMap.has(ing.foodId)) {
+                itemsMap.set(ing.foodId, { ...itemsMap.get(ing.foodId), amount: itemsMap.get(ing.foodId).amount + adjustedAmount });
+              } else {
+                itemsMap.set(ing.foodId, { name: food.name, amount: adjustedAmount, category: food.category });
+              }
+            }
+          });
+        });
+        const grouped = {};
+        itemsMap.forEach((item) => {
+          if (!grouped[item.category]) grouped[item.category] = [];
+          grouped[item.category].push(item);
+        });
+        return grouped;
+      }, [selectedRecipes]);
+
+      const exportShoppingList = () => {
+        let text = "EINKAUFSLISTE · Tiltheman's Kitchen\n" + "=".repeat(40) + "\n\n";
+        Object.entries(generateShoppingList).forEach(([category, items]) => {
+          text += `${categoryNames[category] || category.toUpperCase()}\n` + "-".repeat(30) + "\n";
+          items.forEach(item => { text += `  • ${item.name}: ${item.amount}g\n`; });
+          text += "\n";
+        });
+        text += "\n" + "=".repeat(40) + "\nTiltheman's Kitchen · AIthletics\n";
+        const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'einkaufsliste.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      };
+
+      const getAdjustedNutrition = (recipe) => {
+        const mult = recipe.portionMultiplier;
+        return {
+          kcal: Math.round(recipe.totalNutrition.kcal * mult),
+          protein: Math.round(recipe.totalNutrition.protein * mult * 10) / 10,
+          carbs: Math.round(recipe.totalNutrition.carbs * mult * 10) / 10,
+          fats: Math.round(recipe.totalNutrition.fats * mult * 10) / 10
+        };
+      };
+
+      const categoryLabels = {
+        breakfast: 'Frühstück', lunch: 'Mittagessen', dinner: 'Abendessen', snack: 'Snack',
+        'pre-workout': 'Pre-Workout', 'intra-workout': 'Intra-Workout', 'post-workout': 'Post-Workout'
+      };
+      const difficultyLabels = { easy: 'Einfach', medium: 'Mittel', hard: 'Schwer' };
+
+      const ClockIcon = () => (
+        <svg viewBox="0 0 16 16" className="w-3 h-3 shrink-0" aria-hidden="true">
+          <circle cx="8" cy="8" r="6.4" fill="none" stroke="currentColor" strokeWidth="1.3" />
+          <path d="M8 4.6V8l2.3 1.5" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+        </svg>
+      );
+
+      const Fleuron = () => (
+        <div className="text-center text-sage text-[15px] leading-none" aria-hidden="true">❦</div>
+      );
+
+      const MacroLine = ({ n }) => (
+        <div className="mt-5 py-3 border-t-2 border-ink border-b border-hairline font-mono text-[13px] flex justify-between flex-wrap gap-x-3 gap-y-1">
+          <span><b className="font-medium text-burgundy">{n.kcal}</b> kcal</span>
+          <span><b className="font-medium text-burgundy">{n.protein}</b> g Protein</span>
+          <span><b className="font-medium text-burgundy">{n.carbs}</b> g Carbs</span>
+          <span><b className="font-medium text-burgundy">{n.fats}</b> g Fett</span>
+        </div>
+      );
+
+      return (
+        <div className="min-h-screen bg-paper text-ink font-sans">
+          <div className="max-w-5xl mx-auto px-5 py-12 md:py-16">
+
+            <header className="text-center mb-10 md:mb-12">
+              <p className="font-mono text-[11px] tracking-[0.22em] uppercase text-sage">AIthletics</p>
+              <h1 className="font-serif font-semibold text-4xl md:text-6xl tracking-tight mt-3">Tiltheman's Kitchen</h1>
+              <p className="text-muted mt-3 text-[15px]">Rezepte, die auf deine Makros passen.</p>
+              <div className="mt-5"><Fleuron /></div>
+            </header>
+
+            <nav className="flex justify-center gap-6 md:gap-9 mb-10 flex-wrap border-b border-hairline">
+              {[
+                { id: 'input', label: 'Makros' },
+                { id: 'suggestions', label: 'Rezepte' },
+                { id: 'selection', label: `Auswahl (${selectedRecipes.length})` },
+                { id: 'shopping', label: 'Einkaufsliste' }
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`font-mono text-xs tracking-[0.14em] uppercase pb-3 -mb-px border-b-2 transition-colors ${
+                    activeTab === tab.id ? 'border-burgundy text-ink' : 'border-transparent text-muted hover:text-ink'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+
+            <main className="space-y-10">
+              {activeTab === 'input' && (
+                <section className="border border-hairline bg-paper p-6 md:p-10">
+                  <h2 className="font-serif font-semibold text-2xl md:text-[28px]">Deine Makro-Ziele</h2>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 mt-8">
+                    {[
+                      { key: 'kcal', label: 'Kalorien', unit: 'kcal' },
+                      { key: 'protein', label: 'Protein', unit: 'g' },
+                      { key: 'carbs', label: 'Kohlenhydrate', unit: 'g' },
+                      { key: 'fats', label: 'Fett', unit: 'g' }
+                    ].map(macro => (
+                      <div key={macro.key}>
+                        <label className="block font-mono text-[11px] tracking-[0.16em] uppercase text-sage mb-2">{macro.label}</label>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            value={targetMacros[macro.key]}
+                            onChange={(e) => setTargetMacros({...targetMacros, [macro.key]: Number(e.target.value)})}
+                            className="w-full bg-transparent border-0 border-b border-ink/30 focus:border-burgundy outline-none font-mono text-2xl py-1 pr-12 transition-colors"
+                          />
+                          <span className="absolute right-0 bottom-2 font-mono text-xs text-muted">{macro.unit}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-10">
+                    <h3 className="font-mono text-[11px] tracking-[0.16em] uppercase text-sage">Allergien &amp; Unverträglichkeiten</h3>
+                    <p className="text-muted text-[13px] mt-1.5">Wähle aus, was du meiden willst. Passende Rezepte werden ausgeblendet.</p>
+                    <div className="flex flex-wrap gap-2 mt-4">
+                      {allergenList.map(allergen => (
+                        <button
+                          key={allergen.id}
+                          onClick={() => toggleAllergen(allergen.id)}
+                          className={`px-3.5 py-1.5 border text-sm transition-colors ${
+                            selectedAllergens.includes(allergen.id)
+                              ? 'bg-burgundy border-burgundy text-paper'
+                              : 'border-hairline text-ink/80 hover:border-ink'
+                          }`}
+                        >
+                          {allergen.name}
+                        </button>
+                      ))}
+                    </div>
+                    {selectedAllergens.length > 0 && (
+                      <p className="text-muted text-[13px] mt-3">
+                        Rezepte mit {selectedAllergens.length} Allergen{selectedAllergens.length > 1 ? 'en' : ''} werden ausgeblendet.
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="mt-10">
+                    <h3 className="font-mono text-[11px] tracking-[0.16em] uppercase text-sage">Workout-Nutrition (optional)</h3>
+                    <p className="text-muted text-[13px] mt-1.5">Aktiviere eine Option, um Mahlzeiten rund ums Training zu bekommen.</p>
+                    <div className="flex flex-wrap gap-x-8 gap-y-4 mt-4">
+                      {[
+                        { key: 'preWorkout', label: 'Pre-Workout', sub: '30–60 Min vorher' },
+                        { key: 'intraWorkout', label: 'Intra-Workout', sub: 'Während des Trainings' },
+                        { key: 'postWorkout', label: 'Post-Workout', sub: 'Nach dem Training' }
+                      ].map(filter => (
+                        <label key={filter.key} className="flex items-center gap-3 cursor-pointer group">
+                          <input
+                            type="checkbox"
+                            checked={workoutFilters[filter.key]}
+                            onChange={(e) => setWorkoutFilters({...workoutFilters, [filter.key]: e.target.checked})}
+                            className="sr-only peer"
+                          />
+                          <span className="w-5 h-5 border border-ink/40 peer-checked:bg-sage peer-checked:border-sage transition-colors flex items-center justify-center text-paper text-xs leading-none">
+                            {workoutFilters[filter.key] ? '✓' : ''}
+                          </span>
+                          <span>
+                            <span className="block text-[15px] group-hover:text-ink transition-colors">{filter.label}</span>
+                            <span className="block text-xs text-muted">{filter.sub}</span>
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={findMatchingRecipes}
+                    className="w-full mt-10 bg-burgundy hover:bg-burgundydark text-paper py-4 text-[15px] font-medium tracking-wide transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2"
+                  >
+                    Rezepte finden
+                  </button>
+                </section>
+              )}
+
+              {activeTab === 'suggestions' && (
+                <section>
+                  <div className="flex items-baseline justify-between flex-wrap gap-2">
+                    <h2 className="font-serif font-semibold text-2xl md:text-[28px]">
+                      {(workoutFilters.preWorkout || workoutFilters.intraWorkout || workoutFilters.postWorkout) ? 'Workout-Nutrition' : 'Rezeptvorschläge'}
+                    </h2>
+                    <span className="text-muted text-[13px]">
+                      {(workoutFilters.preWorkout || workoutFilters.intraWorkout || workoutFilters.postWorkout) ? 'Mahlzeiten rund ums Training' : 'Drei Vorschläge, mindestens eines vegan'}
+                    </span>
+                  </div>
+
+                  {suggestions.length === 0 ? (
+                    <div className="border border-hairline p-12 md:p-16 text-center mt-6">
+                      <Fleuron />
+                      <p className="text-muted mt-4">Gib unter „Makros“ deine Ziele ein und lass dir passende Rezepte vorschlagen.</p>
+                    </div>
+                  ) : (
+                    <div className="grid md:grid-cols-3 gap-6 mt-6 items-start">
+                      {suggestions.map((recipe) => {
+                        const adjustedNutrition = getAdjustedNutrition(recipe);
+                        const portionPercent = Math.round(recipe.portionMultiplier * 100);
+                        const isSelected = !!selectedRecipes.find(r => r.id === recipe.id);
+
+                        return (
+                          <div key={recipe.id} className="border border-hairline bg-paper p-6 md:p-7 flex flex-col">
+                            <div className="flex justify-between items-center gap-3 font-mono text-[11px] tracking-[0.14em] uppercase text-sage">
+                              <span>{categoryLabels[recipe.category] || recipe.category}{recipe.isVegan ? ' · Vegan' : ''}</span>
+                              <span className="inline-flex items-center gap-1.5 whitespace-nowrap"><ClockIcon />{recipe.prepTime} Min · {difficultyLabels[recipe.difficulty] || recipe.difficulty}</span>
+                            </div>
+
+                            <h3 className="font-serif font-semibold text-[25px] leading-[1.15] mt-3">{recipe.name}</h3>
+
+                            <div className="my-4"><Fleuron /></div>
+
+                            <div>
+                              {recipe.ingredients.map((ing, i) => (
+                                <div key={i} className="flex items-baseline gap-2.5 py-2 border-b border-hairline last:border-b-0 text-[14.5px]">
+                                  <span>{ing.name}</span>
+                                  <span className="dots"></span>
+                                  <span className="font-mono text-[13px] whitespace-nowrap">{Math.round(ing.amount * recipe.portionMultiplier)} g</span>
+                                </div>
+                              ))}
+                            </div>
+
+                            <MacroLine n={adjustedNutrition} />
+
+                            {portionPercent !== 100 && (
+                              <p className="text-muted text-xs mt-2.5">Portion auf deine Ziele skaliert ({portionPercent} %).</p>
+                            )}
+
+                            <button
+                              onClick={() => addToSelection(recipe)}
+                              disabled={isSelected}
+                              className={`w-full mt-5 py-3.5 text-[14.5px] font-medium tracking-wide transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2 ${
+                                isSelected
+                                  ? 'border border-hairline text-muted cursor-default'
+                                  : 'bg-burgundy hover:bg-burgundydark text-paper'
+                              }`}
+                            >
+                              {isSelected ? 'Im Menü' : 'Ins Menü'}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </section>
+              )}
+
+              {activeTab === 'selection' && (
+                <section className="border border-hairline bg-paper p-6 md:p-10">
+                  <h2 className="font-serif font-semibold text-2xl md:text-[28px]">Dein Menü</h2>
+
+                  {selectedRecipes.length === 0 ? (
+                    <div className="text-center py-14">
+                      <Fleuron />
+                      <p className="text-muted mt-4">Noch leer. Wähle unter „Rezepte“ aus, was auf den Tisch kommt.</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="mt-8">
+                        {selectedRecipes.map(recipe => {
+                          const adjustedNutrition = getAdjustedNutrition(recipe);
+                          return (
+                            <div key={recipe.id} className="flex items-center gap-4 py-4 border-b border-hairline">
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-serif font-semibold text-lg leading-tight">
+                                  {recipe.name}
+                                  {recipe.isVegan && <span className="font-mono font-normal text-[10px] tracking-[0.14em] uppercase text-sage ml-2 align-middle">Vegan</span>}
+                                </h3>
+                                <p className="font-mono text-[12.5px] text-muted mt-1">
+                                  {adjustedNutrition.kcal} kcal · {adjustedNutrition.protein} P · {adjustedNutrition.carbs} C · {adjustedNutrition.fats} F
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => removeFromSelection(recipe.id)}
+                                aria-label={`${recipe.name} entfernen`}
+                                className="w-9 h-9 border border-hairline text-muted hover:border-burgundy hover:text-burgundy transition-colors flex items-center justify-center shrink-0"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {(() => {
+                        const totals = selectedRecipes.reduce((acc, recipe) => {
+                          const adj = getAdjustedNutrition(recipe);
+                          return { kcal: acc.kcal + adj.kcal, protein: acc.protein + adj.protein, carbs: acc.carbs + adj.carbs, fats: acc.fats + adj.fats };
+                        }, { kcal: 0, protein: 0, carbs: 0, fats: 0 });
+                        return (
+                          <div className="mt-6 py-3 border-t-2 border-ink font-mono text-[13px] flex justify-between flex-wrap gap-x-3 gap-y-1">
+                            <span className="uppercase tracking-[0.14em] text-[11px] self-center">Gesamt</span>
+                            <span className="flex gap-x-4 flex-wrap">
+                              <span><b className="font-medium text-burgundy">{Math.round(totals.kcal)}</b> kcal</span>
+                              <span><b className="font-medium text-burgundy">{Math.round(totals.protein)}</b> g Protein</span>
+                              <span><b className="font-medium text-burgundy">{Math.round(totals.carbs)}</b> g Carbs</span>
+                              <span><b className="font-medium text-burgundy">{Math.round(totals.fats)}</b> g Fett</span>
+                            </span>
+                          </div>
+                        );
+                      })()}
+
+                      <button
+                        onClick={() => setActiveTab('shopping')}
+                        className="w-full mt-8 bg-burgundy hover:bg-burgundydark text-paper py-4 text-[15px] font-medium tracking-wide transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2"
+                      >
+                        Zur Einkaufsliste
+                      </button>
+                    </>
+                  )}
+                </section>
+              )}
+
+              {activeTab === 'shopping' && (
+                <section className="border border-hairline bg-paper p-6 md:p-10">
+                  <div className="flex items-baseline justify-between flex-wrap gap-4">
+                    <h2 className="font-serif font-semibold text-2xl md:text-[28px]">Einkaufsliste</h2>
+                    {Object.keys(generateShoppingList).length > 0 && (
+                      <button
+                        onClick={exportShoppingList}
+                        className="border border-ink/40 hover:border-ink px-4 py-2 text-[13.5px] font-medium transition-colors"
+                      >
+                        Als Textdatei exportieren
+                      </button>
+                    )}
+                  </div>
+
+                  {Object.keys(generateShoppingList).length === 0 ? (
+                    <div className="text-center py-14">
+                      <Fleuron />
+                      <p className="text-muted mt-4">Noch leer. Stell dir unter „Rezepte“ ein Menü zusammen, die Liste entsteht von selbst.</p>
+                    </div>
+                  ) : (
+                    <div className="mt-8 space-y-8">
+                      {Object.entries(generateShoppingList).map(([category, items]) => (
+                        <div key={category}>
+                          <h3 className="font-mono text-[11px] tracking-[0.16em] uppercase text-sage">{categoryNames[category] || category}</h3>
+                          <div className="mt-2">
+                            {items.map((item, i) => (
+                              <div key={i} className="flex items-baseline gap-2.5 py-2 border-b border-hairline last:border-b-0 text-[14.5px]">
+                                <span>{item.name}</span>
+                                <span className="dots"></span>
+                                <span className="font-mono text-[13px] whitespace-nowrap">{item.amount} g</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              )}
+            </main>
+
+            <footer className="mt-16 md:mt-20 text-center">
+              <Fleuron />
+              <p className="font-mono text-[11px] tracking-[0.18em] uppercase text-muted mt-4">Tiltheman's Kitchen · AIthletics</p>
+              <p className="text-muted text-[13px] mt-2">Die Tools sind frei. Was du bezahlst, ist die Person im Raum.</p>
+            </footer>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<NutritionCoachApp />);
+  </script>
+</body>
+</html>
